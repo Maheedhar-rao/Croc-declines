@@ -1,15 +1,37 @@
-from fastapi import FastAPI
+from supabase import create_client, Client
 import os
-from supabase import create_client
+from dotenv import load_dotenv
+from flask import Flask, jsonify
+from flask_cors import CORS
 
-app = FastAPI()
+# Load environment variables
+load_dotenv()
 
-SUPABASE_URL = "YOUR_SUPABASE_URL"
-SUPABASE_KEY = "YOUR_SUPABASE_SECRET_KEY"
+# Supabase credentials from .env file
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Initialize Supabase client
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-@app.get("/api/declines")
-def get_declines():
-    response = supabase.table("declines").select("*").execute()
-    return response.data
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)
+
+def fetch_declines():
+    try:
+        response = supabase.table("declines").select("*").execute()
+        if response.data:
+            return response.data
+        else:
+            return []
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.route("/api/declines", methods=["GET"])
+def get_deals():
+    deals = fetch_declines()
+    return jsonify(deals)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
